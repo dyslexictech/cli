@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 	. "code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
+	"code.cloudfoundry.org/cli/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
@@ -243,5 +244,70 @@ var _ = Describe("Organizations", func() {
 				Expect(warnings).To(ConsistOf("this is a warning"))
 			})
 		})
+	})
+
+	Describe("UpdateOrganization", func() {
+		var (
+			orgToUpdate Organization
+			updatedOrg  Organization
+			warnings    Warnings
+			executeErr  error
+		)
+
+		JustBeforeEach(func() {
+			updatedOrg, warnings, executeErr = client.UpdateOrganization(orgToUpdate)
+		})
+
+		When("the organization is updated successfully", func() {
+			BeforeEach(func() {
+				response := `{
+					"guid": "some-app-guid",
+					"name": "some-app-name"
+				}`
+
+				expectedBody := map[string]interface{}{
+					"name": "some-org-name",
+					"metadata": map[string]interface{}{
+						"labels": map[string]string{
+							"k1": "v1",
+							"k2": "v2",
+						},
+					},
+				}
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, "/v3/organizations/some-guid"),
+						VerifyJSONRepresenting(expectedBody),
+						RespondWith(http.StatusOK, response, http.Header{"X-Cf-Warnings": {"this is a warning"}}),
+					),
+				)
+
+				orgToUpdate = Organization{
+					Name: "some-org-name",
+					Metadata: struct {
+						Labels map[string]types.NullString `json:"labels,omitempty"`
+					}{
+						Labels: map[string]types.NullString{
+							"some-key":  types.NewNullString("some-value"),
+							"other-key": types.NewNullString("other-value")},
+					},
+				}
+			})
+
+			It("should include the labels in the JSON", func() {
+				Expect(executeErr).ToNot(HaveOccurred())
+				Expect(server.ReceivedRequests()).To(HaveLen(3))
+				Expect(len(warnings)).To(Equal(0))
+				Expect(len(updatedOrg.Metadata.Labels)).To(Equal(2))
+				Expect(updatedOrg.Metadata.Labels).To(BeEquivalentTo(
+					map[string]types.NullString{
+						"some-key":  types.NewNullString("some-value"),
+						"other-key": types.NewNullString("other-value"),
+					}))
+			})
+
+		})
+
 	})
 })
