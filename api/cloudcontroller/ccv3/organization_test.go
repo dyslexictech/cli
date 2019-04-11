@@ -262,7 +262,13 @@ var _ = Describe("Organizations", func() {
 			BeforeEach(func() {
 				response := `{
 					"guid": "some-app-guid",
-					"name": "some-app-name"
+					"name": "some-app-name",
+					"metadata": {
+						"labels": {
+							"k1":"v1",
+							"k2":"v2"
+						}
+					}
 				}`
 
 				expectedBody := map[string]interface{}{
@@ -285,12 +291,14 @@ var _ = Describe("Organizations", func() {
 
 				orgToUpdate = Organization{
 					Name: "some-org-name",
+					GUID: "some-guid",
 					Metadata: struct {
 						Labels map[string]types.NullString `json:"labels,omitempty"`
 					}{
 						Labels: map[string]types.NullString{
-							"some-key":  types.NewNullString("some-value"),
-							"other-key": types.NewNullString("other-value")},
+							"k1": types.NewNullString("v1"),
+							"k2": types.NewNullString("v2"),
+						},
 					},
 				}
 			})
@@ -299,11 +307,11 @@ var _ = Describe("Organizations", func() {
 				Expect(executeErr).ToNot(HaveOccurred())
 				Expect(server.ReceivedRequests()).To(HaveLen(3))
 				Expect(len(warnings)).To(Equal(0))
-				Expect(len(updatedOrg.Metadata.Labels)).To(Equal(2))
+				// Expect(len(updatedOrg.Metadata.Labels)).To(Equal(2))
 				Expect(updatedOrg.Metadata.Labels).To(BeEquivalentTo(
 					map[string]types.NullString{
-						"some-key":  types.NewNullString("some-value"),
-						"other-key": types.NewNullString("other-value"),
+						"k1": types.NewNullString("v1"),
+						"k2": types.NewNullString("v2"),
 					}))
 			})
 

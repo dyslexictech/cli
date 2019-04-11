@@ -160,7 +160,7 @@ var _ = Describe("set-label command", func() {
 					cmd.RequiredArgs = flag.SetLabelArgs{
 						ResourceType: "app",
 						ResourceName: resourceName,
-						Labels:       []string{"FOO=BAR", "MISSING_EQUALS", "ENV=FAKE"},
+						Labels:       []string{"FOO=BAR", "ENV=FAKE"},
 					}
 					fakeConfig.CurrentUserNameReturns("some-user", errors.New("boom"))
 				})
@@ -182,7 +182,7 @@ var _ = Describe("set-label command", func() {
 		})
 	})
 
-	FWhen("setting labels on orgs", func() {
+	When("setting labels on orgs", func() {
 		BeforeEach(func() {
 			testUI = ui.NewTestUI(nil, NewBuffer(), NewBuffer())
 			fakeActor = new(v7fakes.FakeSetLabelActor)

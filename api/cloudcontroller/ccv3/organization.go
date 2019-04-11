@@ -13,14 +13,14 @@ import (
 // Organization represents a Cloud Controller V3 Organization.
 type Organization struct {
 	// GUID is the unique organization identifier.
-	GUID string `json:"guid"`
+	GUID string `json:"guid,omitempty"`
 	// Name is the name of the organization.
 	Name string `json:"name"`
 
 	// Metadata is used for custom tagging of API resources
 	Metadata struct {
 		Labels map[string]types.NullString `json:"labels,omitempty"`
-	}
+	} `json:"metadata,omitempty"`
 }
 
 // GetIsolationSegmentOrganizations lists organizations
@@ -77,15 +77,22 @@ func (client *Client) GetOrganizations(query ...Query) ([]Organization, Warnings
 }
 
 func (client *Client) UpdateOrganization(org Organization) (Organization, Warnings, error) {
+	orgGUID := org.GUID
+	org.GUID = ""
 	orgBytes, err := json.Marshal(org)
 	if err != nil {
 		return Organization{}, nil, err
 	}
 	request, err := client.newHTTPRequest(requestOptions{
-		RequestName: internal.UpdateOrganizationRequest,
+		RequestName: internal.PatchOrganizationRequest,
 		Body:        bytes.NewReader(orgBytes),
-		URIParams:   map[string]string{"guid": org.GUID},
+		URIParams:   map[string]string{"organization_guid": orgGUID},
 	})
+
+	if err != nil {
+		return Organization{}, nil, err
+	}
+
 	var responseOrg Organization
 	response := cloudcontroller.Response{
 		DecodeJSONResponseInto: &responseOrg,
@@ -95,4 +102,5 @@ func (client *Client) UpdateOrganization(org Organization) (Organization, Warnin
 	if err != nil {
 		return Organization{}, nil, err
 	}
+	return responseOrg, nil, err
 }
